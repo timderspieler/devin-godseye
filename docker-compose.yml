@@ -1,0 +1,21 @@
+services:
+  godseye:
+    build: .
+    container_name: devin-godseye
+    ports:
+      - "8000:8000"
+    environment:
+      - DEVIN_API_KEY=${DEVIN_API_KEY:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-}
+      - TARGET_REPO=${TARGET_REPO:-timderspieler/superset}
+      - TRIGGER_LABELS=${TRIGGER_LABELS:-devin-fix}
+      - AUTO_APPROVE_LABELS=${AUTO_APPROVE_LABELS:-}
+      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-30}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/godseye.db}
+    volumes:
+      - godseye-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  godseye-data:

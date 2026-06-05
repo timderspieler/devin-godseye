@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Devin Godseye</title>
+  <style>
+    :root {
+      --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #c9d1d9;
+      --muted: #8b949e; --accent: #58a6ff; --green: #3fb950; --red: #f85149;
+      --yellow: #d29922; --blue: #1f6feb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    header {
+      padding: 18px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--panel);
+    }
+    header h1 { font-size: 20px; margin: 0; }
+    header .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .meta { color: var(--muted); font-size: 12px; text-align: right; }
+    main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+    .stats { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stat {
+      flex: 1; min-width: 140px; background: var(--panel); border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px 16px;
+    }
+    .stat .n { font-size: 28px; font-weight: 700; }
+    .stat .l { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    section { margin-bottom: 28px; }
+    section h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px 16px; margin-bottom: 12px;
+    }
+    .card .top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .card .title { font-weight: 600; }
+    .card a { color: var(--accent); text-decoration: none; }
+    .card a:hover { text-decoration: underline; }
+    .card .body { color: var(--muted); font-size: 13px; margin-top: 6px; white-space: pre-wrap;
+      max-height: 80px; overflow: hidden; }
+    .labels { margin-top: 8px; }
+    .label { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 12px;
+      border: 1px solid var(--border); color: var(--muted); margin-right: 6px; }
+    .badge { font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600; white-space: nowrap; }
+    .badge.pending_approval { background: rgba(210,153,34,.15); color: var(--yellow); }
+    .badge.running, .badge.approved { background: rgba(31,111,235,.18); color: var(--accent); }
+    .badge.completed { background: rgba(63,185,80,.16); color: var(--green); }
+    .badge.failed { background: rgba(248,81,73,.16); color: var(--red); }
+    .badge.declined { background: rgba(139,148,158,.16); color: var(--muted); }
+    .actions { margin-top: 12px; display: flex; gap: 8px; }
+    button {
+      font: inherit; border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px;
+      cursor: pointer; background: #21262d; color: var(--text);
+    }
+    button:hover { border-color: var(--muted); }
+    button.approve { background: var(--green); color: #03150a; border-color: var(--green); font-weight: 600; }
+    button.decline { background: transparent; color: var(--red); border-color: var(--red); }
+    button.small { padding: 3px 10px; font-size: 12px; }
+    .session-info { margin-top: 10px; font-size: 13px; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 8px; }
+    .session-info .row { margin: 3px 0; }
+    .empty { color: var(--muted); font-size: 13px; font-style: italic; padding: 6px 0; }
+    .auto { font-size: 11px; color: var(--green); margin-left: 8px; }
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none;
+      align-items: center; justify-content: center;
+    }
+    .modal {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px; width: 440px; max-width: 90vw;
+    }
+    .modal h3 { margin-top: 0; }
+    .modal textarea { width: 100%; min-height: 90px; background: var(--bg); color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px; padding: 8px; font: inherit; }
+    .modal .actions { justify-content: flex-end; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .dot.green { background: var(--green); } .dot.red { background: var(--red); }
+    .dot.blue { background: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Devin Godseye</h1>
+      <div class="sub">Automated issue fixing for <strong>{{ target_repo }}</strong></div>
+    </div>
+    <div class="meta">
+      <div>Auto-refresh every <span id="interval">5</span>s</div>
+      <div id="updated">—</div>
+    </div>
+  </header>
+  <main>
+    <div class="stats">
+      <div class="stat"><div class="n" id="s-pending">0</div><div class="l">Pending approval</div></div>
+      <div class="stat"><div class="n" id="s-active">0</div><div class="l">Active sessions</div></div>
+      <div class="stat"><div class="n" id="s-completed">0</div><div class="l">Completed</div></div>
+      <div class="stat"><div class="n" id="s-failed">0</div><div class="l">Failed</div></div>
+      <div class="stat"><div class="n" id="s-declined">0</div><div class="l">Declined</div></div>
+    </div>
+
+    <section><h2>Pending approvals</h2><div id="pending"></div></section>
+    <section><h2>Active sessions</h2><div id="active"></div></section>
+    <section><h2>Completed fixes</h2><div id="completed"></div></section>
+    <section><h2>Declined</h2><div id="declined"></div></section>
+  </main>
+
+  <div class="modal-bg" id="modal">
+    <div class="modal">
+      <h3>Decline issue</h3>
+      <p style="color:var(--muted);font-size:13px">This closes the GitHub issue with the reason below.</p>
+      <textarea id="decline-reason" placeholder="Reason for declining (will be posted as a comment)…"></textarea>
+      <div class="actions">
+        <button onclick="closeModal()">Cancel</button>
+        <button class="decline" id="confirm-decline">Close issue</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const POLL_MS = 5000;
+    let declineTarget = null;
+
+    function esc(s) {
+      return (s || "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+    }
+    function fmt(ts) { if (!ts) return "—"; const d = new Date(ts); return d.toLocaleString(); }
+
+    function labelHtml(labels) {
+      return `<div class="labels">${(labels||[]).map(l => `<span class="label">${esc(l)}</span>`).join("")}</div>`;
+    }
+
+    function sessionHtml(s) {
+      if (!s) return "";
+      let pr = s.pr_url ? `<a href="${esc(s.pr_url)}" target="_blank">${esc(s.pr_url)}</a>` : "<em>none yet</em>";
+      let summary = s.result_summary ? `<div class="row">Result: ${esc(s.result_summary)}</div>` : "";
+      return `<div class="session-info">
+        <div class="row">Session: <a href="${esc(s.devin_session_url)}" target="_blank">${esc(s.devin_session_id)}</a></div>
+        <div class="row">Devin status: <strong>${esc(s.status)}</strong></div>
+        <div class="row">PR: ${pr}</div>
+        ${summary}
+        <div class="row">Created: ${fmt(s.created_at)}${s.completed_at ? " · Completed: " + fmt(s.completed_at) : ""}</div>
+      </div>`;
+    }
+
+    function statusDot(issue) {
+      if (issue.status === "completed") return '<span class="dot green"></span>';
+      if (issue.status === "failed") return '<span class="dot red"></span>';
+      if (issue.status === "running" || issue.status === "approved") return '<span class="dot blue"></span>';
+      return "";
+    }
+
+    function cardHtml(issue, opts = {}) {
+      const auto = issue.auto_approved ? '<span class="auto">auto-approved</span>' : "";
+      let actions = "";
+      if (opts.actions) {
+        actions = `<div class="actions">
+          <button class="approve" onclick="approve(${issue.id})">Approve</button>
+          <button class="decline" onclick="openModal(${issue.id})">Decline</button>
+        </div>`;
+      }
+      let refresh = "";
+      if (issue.session && (issue.status === "running" || issue.status === "approved")) {
+        refresh = `<div class="actions"><button class="small" onclick="refresh(${issue.id})">Refresh status</button></div>`;
+      }
+      let declineReason = issue.decline_reason ? `<div class="session-info"><div class="row">Reason: ${esc(issue.decline_reason)}</div></div>` : "";
+      return `<div class="card">
+        <div class="top">
+          <div class="title">${statusDot(issue)}<a href="${esc(issue.html_url)}" target="_blank">#${issue.number} ${esc(issue.title)}</a>${auto}</div>
+          <span class="badge ${issue.status}">${esc(issue.status)}</span>
+        </div>
+        <div class="body">${esc(issue.body).slice(0, 400)}</div>
+        ${labelHtml(issue.labels)}
+        ${sessionHtml(issue.session)}
+        ${declineReason}
+        ${actions}${refresh}
+      </div>`;
+    }
+
+    function render(id, items, opts) {
+      const el = document.getElementById(id);
+      if (!items.length) { el.innerHTML = '<div class="empty">Nothing here.</div>'; return; }
+      el.innerHTML = items.map(i => cardHtml(i, opts)).join("");
+    }
+
+    async function load() {
+      try {
+        const res = await fetch("/api/issues");
+        const data = await res.json();
+        render("pending", data.pending, { actions: true });
+        render("active", data.active, {});
+        render("completed", data.completed, {});
+        render("declined", data.declined, {});
+        document.getElementById("s-pending").textContent = data.pending.length;
+        document.getElementById("s-active").textContent = data.active.length;
+        document.getElementById("s-completed").textContent = data.completed.filter(i => i.status === "completed").length;
+        document.getElementById("s-failed").textContent = data.completed.filter(i => i.status === "failed").length;
+        document.getElementById("s-declined").textContent = data.declined.length;
+        document.getElementById("updated").textContent = "Updated " + new Date().toLocaleTimeString();
+      } catch (e) { console.error(e); }
+    }
+
+    async function approve(id) {
+      const r = await fetch(`/api/issues/${id}/approve`, { method: "POST" });
+      if (!r.ok) alert("Approve failed: " + (await r.text()));
+      load();
+    }
+    async function refresh(id) {
+      await fetch(`/api/issues/${id}/refresh`, { method: "POST" });
+      load();
+    }
+    function openModal(id) { declineTarget = id; document.getElementById("modal").style.display = "flex"; }
+    function closeModal() { declineTarget = null; document.getElementById("decline-reason").value = ""; document.getElementById("modal").style.display = "none"; }
+    document.getElementById("confirm-decline").onclick = async () => {
+      const reason = document.getElementById("decline-reason").value;
+      const id = declineTarget;
+      const r = await fetch(`/api/issues/${id}/decline`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      if (!r.ok) alert("Decline failed: " + (await r.text()));
+      closeModal(); load();
+    };
+
+    document.getElementById("interval").textContent = (POLL_MS / 1000).toString();
+    load();
+    setInterval(load, POLL_MS);
+  </script>
+</body>
+</html>
