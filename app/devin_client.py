@@ -96,6 +96,20 @@ class DevinClient:
             is_new_session=data.get("is_new_session"),
         )
 
+    def terminate_session(self, session_id: str, archive: bool = True) -> None:
+        """Terminate a session and optionally archive it for future reference."""
+        params = {"archive": "true"} if archive else {}
+        with httpx.Client(timeout=self.timeout) as client:
+            resp = client.delete(
+                f"{self._sessions_url()}/{session_id}",
+                headers=self._headers(),
+                params=params,
+            )
+        if resp.status_code >= 400:
+            raise DevinAPIError(
+                f"terminate_session failed ({resp.status_code}): {resp.text}"
+            )
+
     def get_session(self, session_id: str) -> SessionDetails:
         with httpx.Client(timeout=self.timeout) as client:
             resp = client.get(

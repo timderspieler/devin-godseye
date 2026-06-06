@@ -179,6 +179,22 @@ def sync_session(
         issue.status = IssueStatus.COMPLETED
         if session.completed_at is None:
             session.completed_at = datetime.now(UTC)
+        # Terminate and archive the Devin session if it's still running.
+        if details.status == "running":
+            try:
+                client.terminate_session(
+                    session.devin_session_id, archive=True
+                )
+                session.status = "exit"
+                logger.info(
+                    "Terminated and archived session %s (PR merged)",
+                    session.devin_session_id,
+                )
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "Failed to terminate session %s",
+                    session.devin_session_id,
+                )
     elif status_enum in FAILURE_STATUSES:
         issue.status = IssueStatus.FAILED
         if session.completed_at is None:
