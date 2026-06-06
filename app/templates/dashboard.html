@@ -136,9 +136,17 @@
       return `<div class="labels">${(labels||[]).map(l => `<span class="label">${esc(l)}</span>`).join("")}</div>`;
     }
 
+    function prBadge(state) {
+      if (!state) return "";
+      const cls = state === "merged" ? "completed" : state === "open" ? "running" : "failed";
+      return ` <span class="badge ${cls}" style="font-size:10px;padding:2px 7px">${esc(state)}</span>`;
+    }
+
     function sessionHtml(s) {
       if (!s) return "";
-      let pr = s.pr_url ? `<a href="${esc(s.pr_url)}" target="_blank">${esc(s.pr_url)}</a>` : "<em>none yet</em>";
+      let pr = s.pr_url
+        ? `<a href="${esc(s.pr_url)}" target="_blank">${esc(s.pr_url)}</a>${prBadge(s.pr_state)}`
+        : "<em>none yet</em>";
       let summary = s.result_summary ? `<div class="row">Result: ${esc(s.result_summary)}</div>` : "";
       return `<div class="session-info">
         <div class="row">Session: <a href="${esc(s.devin_session_url)}" target="_blank">${esc(s.devin_session_id)}</a></div>

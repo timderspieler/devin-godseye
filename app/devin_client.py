@@ -27,6 +27,7 @@ class SessionDetails:
     status: str
     status_enum: str | None
     pr_url: str | None
+    pr_state: str | None
     structured_output: Any | None
     title: str | None
     updated_at: str | None
@@ -95,6 +96,20 @@ class DevinClient:
             is_new_session=data.get("is_new_session"),
         )
 
+    def terminate_session(self, session_id: str, archive: bool = True) -> None:
+        """Terminate a session and optionally archive it for future reference."""
+        params = {"archive": "true"} if archive else {}
+        with httpx.Client(timeout=self.timeout) as client:
+            resp = client.delete(
+                f"{self._sessions_url()}/{session_id}",
+                headers=self._headers(),
+                params=params,
+            )
+        if resp.status_code >= 400:
+            raise DevinAPIError(
+                f"terminate_session failed ({resp.status_code}): {resp.text}"
+            )
+
     def get_session(self, session_id: str) -> SessionDetails:
         with httpx.Client(timeout=self.timeout) as client:
             resp = client.get(
@@ -106,14 +121,15 @@ class DevinClient:
                 f"get_session failed ({resp.status_code}): {resp.text}"
             )
         data = resp.json()
-        # v3 returns pull_requests as a list; extract the first PR URL.
+        # v3 returns pull_requests as a list; extract the first PR.
         pull_requests = data.get("pull_requests") or []
-        pr_url = pull_requests[0]["pr_url"] if pull_requests else None
+        first_pr = pull_requests[0] if pull_requests else {}
         return SessionDetails(
             session_id=data["session_id"],
             status=data.get("status", ""),
             status_enum=data.get("status_detail"),
-            pr_url=pr_url,
+            pr_url=first_pr.get("pr_url"),
+            pr_state=first_pr.get("pr_state"),
             structured_output=data.get("structured_output"),
             title=data.get("title"),
             updated_at=data.get("updated_at"),

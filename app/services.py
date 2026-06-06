@@ -165,6 +165,8 @@ def sync_session(
     session.status = status_enum
     if details.pr_url:
         session.pr_url = details.pr_url
+    if details.pr_state:
+        session.pr_state = details.pr_state
     if details.structured_output is not None:
         session.structured_output = json.dumps(details.structured_output)
         summary = _extract_summary(details.structured_output)
@@ -172,10 +174,27 @@ def sync_session(
             session.result_summary = summary
 
     issue = session.issue
-    if status_enum in SUCCESS_STATUSES:
+    pr_merged = session.pr_state == "merged"
+    if status_enum in SUCCESS_STATUSES or pr_merged:
         issue.status = IssueStatus.COMPLETED
         if session.completed_at is None:
             session.completed_at = datetime.now(UTC)
+        # Terminate and archive the Devin session if it's still running.
+        if details.status == "running":
+            try:
+                client.terminate_session(
+                    session.devin_session_id, archive=True
+                )
+                session.status = "exit"
+                logger.info(
+                    "Terminated and archived session %s (PR merged)",
+                    session.devin_session_id,
+                )
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "Failed to terminate session %s",
+                    session.devin_session_id,
+                )
     elif status_enum in FAILURE_STATUSES:
         issue.status = IssueStatus.FAILED
         if session.completed_at is None:

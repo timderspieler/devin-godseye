@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import get_settings
+
+logger = logging.getLogger("godseye.database")
 
 
 class Base(DeclarativeBase):
@@ -29,11 +32,25 @@ engine = _make_engine()
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False, future=True)
 
 
+def _migrate_add_columns() -> None:
+    """Add columns introduced after initial schema (no Alembic needed)."""
+    insp = inspect(engine)
+    if "sessions" in insp.get_table_names():
+        cols = {c["name"] for c in insp.get_columns("sessions")}
+        if "pr_state" not in cols:
+            with engine.begin() as conn:
+                conn.execute(
+                    text("ALTER TABLE sessions ADD COLUMN pr_state VARCHAR(32)")
+                )
+            logger.info("Migrated: added pr_state column to sessions table")
+
+
 def init_db() -> None:
     """Create all tables. Import models so they register with the metadata."""
     from app import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    _migrate_add_columns()
 
 
 def get_session() -> Iterator[Session]:

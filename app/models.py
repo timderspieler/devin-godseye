@@ -35,8 +35,9 @@ class IssueStatus(enum.StrEnum):
 
 
 # Devin session statuses that we treat as terminal-success vs terminal-failure.
-SUCCESS_STATUSES = {"finished"}
-FAILURE_STATUSES = {"expired"}
+# v1 used "finished"/"expired"; v3 uses "exit"/"suspended".
+SUCCESS_STATUSES = {"finished", "exit"}
+FAILURE_STATUSES = {"expired", "suspended"}
 
 
 class Issue(Base):
@@ -93,6 +94,7 @@ class FixSession(Base):
     # Last known Devin status_enum (working/blocked/expired/finished/...).
     status: Mapped[str] = mapped_column(String(64), default="working")
     pr_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    pr_state: Mapped[str | None] = mapped_column(String(32), nullable=True)
     result_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     structured_output: Mapped[str | None] = mapped_column(Text, nullable=True)
 
