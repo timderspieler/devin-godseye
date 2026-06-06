@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     # When False, the background poller is not started (useful for tests).
     enable_poller: bool = True
 
+    # --- GitHub issue scanner ---
+    # Interval (seconds) between GitHub scans for pre-existing labeled issues.
+    scan_interval_seconds: int = 60
+    # When False, the background scanner is not started (useful for tests).
+    enable_scanner: bool = True
+
     # Default ACU limit applied to created sessions (None = account default).
     session_max_acu_limit: int | None = None
 

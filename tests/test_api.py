@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from app import services
+from app import scanner, services
 from tests.fakes import FakeDevinClient, FakeGitHubClient
 
 
@@ -122,3 +122,29 @@ def test_decline_flow(client, fake_github):
 
 def test_approve_missing_issue(client):
     assert client.post("/api/issues/999/approve").status_code == 404
+
+
+def test_scan_endpoint(client, monkeypatch):
+    gh = FakeGitHubClient(
+        issues=[
+            {
+                "number": 10,
+                "id": 9010,
+                "title": "Scanned bug",
+                "body": "found via scan",
+                "html_url": "https://github.com/timderspieler/superset/issues/10",
+                "labels": [{"name": "devin-fix"}],
+            }
+        ]
+    )
+    monkeypatch.setattr(scanner, "GitHubClient", lambda *a, **k: gh)
+    monkeypatch.setattr(scanner, "DevinClient", lambda *a, **k: FakeDevinClient())
+
+    res = client.post("/api/scan")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["new_issues_recorded"] == 1
+
+    listing = client.get("/api/issues").json()
+    assert len(listing["pending"]) == 1
+    assert listing["pending"][0]["number"] == 10

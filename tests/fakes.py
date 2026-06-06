@@ -31,14 +31,25 @@ class FakeDevinClient:
 
 
 class FakeGitHubClient:
-    def __init__(self) -> None:
+    def __init__(self, issues: list[dict] | None = None) -> None:
         self.closed: list[tuple[str, int, str | None]] = []
+        self._issues: list[dict] = issues if issues is not None else []
 
     def comment_on_issue(self, repo, number, body):
         pass
 
     def close_issue(self, repo, number, comment=None, state_reason="not_planned"):
         self.closed.append((repo, number, comment))
+
+    def list_issues(self, repo, labels="", state="open", per_page=100):
+        if labels:
+            label_set = {part.strip().lower() for part in labels.split(",")}
+            return [
+                i
+                for i in self._issues
+                if label_set & {lbl.get("name", "").lower() for lbl in i.get("labels", [])}
+            ]
+        return list(self._issues)
 
 
 def details(status_enum="finished", pr_url=None, structured_output=None) -> SessionDetails:

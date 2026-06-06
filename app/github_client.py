@@ -1,6 +1,8 @@
-"""Thin client for the GitHub REST API (used to close declined issues)."""
+"""Thin client for the GitHub REST API (close issues, list issues)."""
 
 from __future__ import annotations
+
+from typing import Any
 
 import httpx
 
@@ -45,6 +47,46 @@ class GitHubClient:
             raise GitHubAPIError(
                 f"comment_on_issue failed ({resp.status_code}): {resp.text}"
             )
+
+    def list_issues(
+        self,
+        repo: str,
+        labels: str = "",
+        state: str = "open",
+        per_page: int = 100,
+    ) -> list[dict[str, Any]]:
+        """Return issues for *repo* matching the given label(s).
+
+        ``labels`` is a comma-separated string (GitHub API format).
+        Paginates automatically until all matching issues are fetched.
+        """
+        all_issues: list[dict[str, Any]] = []
+        page = 1
+        while True:
+            with httpx.Client(timeout=self.timeout) as client:
+                resp = client.get(
+                    f"{self.base_url}/repos/{repo}/issues",
+                    headers=self._headers(),
+                    params={
+                        "labels": labels,
+                        "state": state,
+                        "per_page": per_page,
+                        "page": page,
+                    },
+                )
+            if resp.status_code >= 400:
+                raise GitHubAPIError(
+                    f"list_issues failed ({resp.status_code}): {resp.text}"
+                )
+            batch = resp.json()
+            if not batch:
+                break
+            # GitHub's issues endpoint also returns PRs; filter them out.
+            all_issues.extend(item for item in batch if "pull_request" not in item)
+            if len(batch) < per_page:
+                break
+            page += 1
+        return all_issues
 
     def close_issue(
         self,
