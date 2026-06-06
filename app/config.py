@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     # --- Devin API ---
     devin_api_key: str = ""
     devin_api_base_url: str = "https://api.devin.ai"
+    devin_org_id: str = ""
 
     # --- GitHub ---
     github_token: str = ""
