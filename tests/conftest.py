@@ -13,6 +13,7 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_DB_PATH}"
 os.environ["ENABLE_POLLER"] = "false"
 os.environ["GITHUB_WEBHOOK_SECRET"] = ""  # skip signature checks in tests
 os.environ["DEVIN_API_KEY"] = "test-key"
+os.environ["DEVIN_ORG_ID"] = "org-test123"
 os.environ["GITHUB_TOKEN"] = "test-token"
 os.environ["TRIGGER_LABELS"] = "devin-fix"
 os.environ["AUTO_APPROVE_LABELS"] = "devin-fix-auto"

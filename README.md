@@ -59,7 +59,7 @@ The dashboard (served at `/`) auto-refreshes and shows four sections:
 ## Quick start (Docker)
 
 ```bash
-cp .env.example .env       # then fill in DEVIN_API_KEY, GITHUB_TOKEN, GITHUB_WEBHOOK_SECRET
+cp .env.example .env       # then fill in DEVIN_API_KEY, DEVIN_ORG_ID, GITHUB_TOKEN, GITHUB_WEBHOOK_SECRET
 docker compose up --build
 ```
 
@@ -81,7 +81,8 @@ All configuration is via environment variables (or a `.env` file). See `.env.exa
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DEVIN_API_KEY` | — | Devin API key ([create one](https://app.devin.ai/settings/api-keys)). Required to create sessions. |
+| `DEVIN_API_KEY` | — | Service user API key ([create one](https://app.devin.ai/settings/api-keys), starts with `cog_`). Required to create sessions. |
+| `DEVIN_ORG_ID` | — | Organization ID (find it on [Settings → Service Users](https://app.devin.ai/settings/api-keys), starts with `org-`). Required for v3 API. |
 | `DEVIN_API_BASE_URL` | `https://api.devin.ai` | Devin API base URL. |
 | `GITHUB_TOKEN` | — | GitHub token with `repo` scope. Required to close declined issues. |
 | `GITHUB_API_BASE_URL` | `https://api.github.com` | GitHub API base URL. |

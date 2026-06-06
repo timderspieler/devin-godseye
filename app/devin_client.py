@@ -1,4 +1,4 @@
-"""Thin client for the Devin API (https://docs.devin.ai/api-reference)."""
+"""Thin client for the Devin API v3 (https://docs.devin.ai/api-reference)."""
 
 from __future__ import annotations
 
@@ -34,17 +34,19 @@ class SessionDetails:
 
 
 class DevinClient:
-    """Minimal wrapper around the Devin v1 sessions API."""
+    """Wrapper around the Devin v3 sessions API."""
 
     def __init__(
         self,
         api_key: str | None = None,
         base_url: str | None = None,
+        org_id: str | None = None,
         timeout: float = 30.0,
     ) -> None:
         settings = get_settings()
         self.api_key = api_key if api_key is not None else settings.devin_api_key
         self.base_url = (base_url or settings.devin_api_base_url).rstrip("/")
+        self.org_id = org_id if org_id is not None else settings.devin_org_id
         self.timeout = timeout
 
     def _headers(self) -> dict[str, str]:
@@ -55,6 +57,11 @@ class DevinClient:
             "Content-Type": "application/json",
         }
 
+    def _sessions_url(self) -> str:
+        if not self.org_id:
+            raise DevinAPIError("DEVIN_ORG_ID is not configured")
+        return f"{self.base_url}/v3/organizations/{self.org_id}/sessions"
+
     def create_session(
         self,
         prompt: str,
@@ -63,7 +70,7 @@ class DevinClient:
         max_acu_limit: int | None = None,
         idempotent: bool = False,
     ) -> CreatedSession:
-        payload: dict[str, Any] = {"prompt": prompt, "idempotent": idempotent}
+        payload: dict[str, Any] = {"prompt": prompt}
         if title:
             payload["title"] = title
         if tags:
@@ -73,7 +80,7 @@ class DevinClient:
 
         with httpx.Client(timeout=self.timeout) as client:
             resp = client.post(
-                f"{self.base_url}/v1/sessions",
+                self._sessions_url(),
                 headers=self._headers(),
                 json=payload,
             )
@@ -91,7 +98,7 @@ class DevinClient:
     def get_session(self, session_id: str) -> SessionDetails:
         with httpx.Client(timeout=self.timeout) as client:
             resp = client.get(
-                f"{self.base_url}/v1/sessions/{session_id}",
+                f"{self._sessions_url()}/{session_id}",
                 headers=self._headers(),
             )
         if resp.status_code >= 400:
@@ -99,12 +106,14 @@ class DevinClient:
                 f"get_session failed ({resp.status_code}): {resp.text}"
             )
         data = resp.json()
-        pull_request = data.get("pull_request") or {}
+        # v3 returns pull_requests as a list; extract the first PR URL.
+        pull_requests = data.get("pull_requests") or []
+        pr_url = pull_requests[0]["pr_url"] if pull_requests else None
         return SessionDetails(
             session_id=data["session_id"],
             status=data.get("status", ""),
-            status_enum=data.get("status_enum"),
-            pr_url=pull_request.get("url"),
+            status_enum=data.get("status_detail"),
+            pr_url=pr_url,
             structured_output=data.get("structured_output"),
             title=data.get("title"),
             updated_at=data.get("updated_at"),
