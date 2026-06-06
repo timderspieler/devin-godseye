@@ -6,22 +6,26 @@ Identify issues before they become a real problem — reducing your attack surfa
 sessions, with a human-in-the-loop approval dashboard.
 
 When a GitHub issue is labeled **`devin-fix`** in a watched repo (default
-[`timderspieler/superset`](https://github.com/timderspieler/superset)), a webhook hits this
-service. The issue shows up on a dashboard for review. On **Approve**, the service calls the
-[Devin API](https://docs.devin.ai/api-reference) to spin up a session that fixes the issue and
-opens a pull request. The service stores the session ↔ issue mapping and polls Devin to track
-status, the resulting PR, and a result summary.
+[`timderspieler/superset`](https://github.com/timderspieler/superset)), the service detects it
+via a GitHub webhook *and* a background scanner that periodically polls the GitHub API for
+pre-existing labeled issues. The issue shows up on a dashboard for review. On **Approve**, the
+service calls the [Devin API](https://docs.devin.ai/api-reference) to spin up a session that
+fixes the issue and opens a pull request. The service stores the session ↔ issue mapping and
+polls Devin to track status, the resulting PR, and a result summary.
 
 ## How it works
 
 ```
 GitHub issue labeled "devin-fix"
-        │  (webhook: issues / labeled)
+        │
+        ├─ webhook: POST /webhooks/github
+        ├─ scanner: background poll of GitHub API (catches pre-existing issues)
+        ├─ manual:  dashboard "Sync issues" button → POST /api/scan
         ▼
-  POST /webhooks/github  ──►  record issue as "pending approval"
-        │                         │
-        │                         ├─ label in AUTO_APPROVE_LABELS ─► auto-approve
-        ▼                         ▼
+  record issue as "pending approval"
+        │
+        ├─ label in AUTO_APPROVE_LABELS ─► auto-approve
+        ▼
    Dashboard  ──Approve──►  POST /v1/sessions (Devin API)  ─► store devin_session_id
         │                         │
         └──Decline (reason)──►  close GitHub issue          ▼
@@ -87,6 +91,8 @@ All configuration is via environment variables (or a `.env` file). See `.env.exa
 | `AUTO_APPROVE_LABELS` | _(empty)_ | Comma-separated labels that auto-approve (skip manual review). |
 | `DATABASE_URL` | `sqlite:///./data/godseye.db` | SQLAlchemy database URL. |
 | `POLL_INTERVAL_SECONDS` | `30` | How often the poller syncs active sessions. |
+| `SCAN_INTERVAL_SECONDS` | `60` | How often the scanner polls GitHub for labeled issues. |
+| `ENABLE_SCANNER` | `true` | Enable/disable the background GitHub issue scanner. |
 | `SESSION_MAX_ACU_LIMIT` | _(empty)_ | Optional ACU cap per created session. |
 
 ## Configuring the GitHub webhook
@@ -101,6 +107,11 @@ On the watched repository (e.g. `timderspieler/superset`):
 
 Then create an issue and add the `devin-fix` label — it will appear on the dashboard.
 
+> **No webhook configured yet?** No problem — the service also runs a background scanner that
+> polls the GitHub API for open issues with the trigger label(s). Pre-existing labeled issues
+> are automatically discovered. You can also click **"Sync issues from GitHub"** in the
+> dashboard header or call `POST /api/scan` to trigger an immediate scan.
+>
 > For local testing you can expose your machine with a tunnel (e.g. `ngrok http 8000`) and use
 > that URL as the payload URL, or simply POST a sample `issues` payload to `/webhooks/github`.
 
@@ -109,6 +120,7 @@ Then create an issue and add the `devin-fix` label — it will appear on the das
 | Method & path | Description |
 |---------------|-------------|
 | `POST /webhooks/github` | GitHub webhook receiver (verifies HMAC signature). |
+| `POST /api/scan` | Manually trigger a GitHub issue scan (returns `new_issues_recorded`). |
 | `GET /api/issues` | All issues grouped into `pending` / `active` / `completed` / `declined`. |
 | `GET /api/issues/{id}` | Single issue with its session. |
 | `POST /api/issues/{id}/approve` | Approve → create a Devin session. |
@@ -136,6 +148,7 @@ app/
   github_client.py # GitHub API client
   webhook.py       # signature verification + payload parsing
   services.py      # approve / decline / sync business logic
+  scanner.py       # background GitHub issue scanner
   poller.py        # background session status poller
   main.py          # FastAPI app: webhook, JSON API, dashboard
   templates/dashboard.html

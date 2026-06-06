@@ -20,6 +20,7 @@ from app.devin_client import DevinAPIError
 from app.github_client import GitHubAPIError
 from app.models import Issue, IssueStatus
 from app.poller import poller_loop
+from app.scanner import scan_once, scanner_loop
 from app.schemas import DeclineRequest, IssueView
 from app.webhook import parse_issue_event, verify_signature
 
@@ -35,14 +36,16 @@ async def lifespan(app: FastAPI):
     init_db()
     settings = get_settings()
     stop_event = asyncio.Event()
-    task: asyncio.Task | None = None
+    tasks: list[asyncio.Task] = []
     if settings.enable_poller:
-        task = asyncio.create_task(poller_loop(stop_event))
+        tasks.append(asyncio.create_task(poller_loop(stop_event)))
+    if settings.enable_scanner:
+        tasks.append(asyncio.create_task(scanner_loop(stop_event)))
     try:
         yield
     finally:
         stop_event.set()
-        if task is not None:
+        for task in tasks:
             await task
 
 
@@ -186,6 +189,16 @@ def decline(
     except GitHubAPIError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return IssueView.from_model(issue).model_dump(mode="json")
+
+
+@app.post("/api/scan")
+def trigger_scan(db: Session = Depends(get_session)) -> dict:
+    """Manually trigger a GitHub issue scan."""
+    try:
+        recorded = scan_once()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return {"status": "ok", "new_issues_recorded": recorded}
 
 
 @app.post("/api/issues/{issue_id}/refresh")

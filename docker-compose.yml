@@ -12,6 +12,8 @@ services:
       - TRIGGER_LABELS=${TRIGGER_LABELS:-devin-fix}
       - AUTO_APPROVE_LABELS=${AUTO_APPROVE_LABELS:-}
       - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-30}
+      - SCAN_INTERVAL_SECONDS=${SCAN_INTERVAL_SECONDS:-60}
+      - ENABLE_SCANNER=${ENABLE_SCANNER:-true}
       - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/godseye.db}
     volumes:
       - godseye-data:/app/data

@@ -61,6 +61,8 @@
     button.approve { background: var(--green); color: #03150a; border-color: var(--green); font-weight: 600; }
     button.decline { background: transparent; color: var(--red); border-color: var(--red); }
     button.small { padding: 3px 10px; font-size: 12px; }
+    button.sync { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; }
+    button.sync:disabled { opacity: .5; cursor: wait; }
     .session-info { margin-top: 10px; font-size: 13px; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 8px; }
     .session-info .row { margin: 3px 0; }
     .empty { color: var(--muted); font-size: 13px; font-style: italic; padding: 6px 0; }
@@ -89,7 +91,8 @@
       <div class="sub">Automated issue fixing for <strong>{{ target_repo }}</strong></div>
     </div>
     <div class="meta">
-      <div>Auto-refresh every <span id="interval">5</span>s</div>
+      <button class="sync" id="sync-btn" onclick="syncIssues()">Sync issues from GitHub</button>
+      <div style="margin-top:4px">Auto-refresh every <span id="interval">5</span>s</div>
       <div id="updated">—</div>
     </div>
   </header>
@@ -224,6 +227,23 @@
       if (!r.ok) alert("Decline failed: " + (await r.text()));
       closeModal(); load();
     };
+
+    async function syncIssues() {
+      const btn = document.getElementById("sync-btn");
+      btn.disabled = true; btn.textContent = "Scanning…";
+      try {
+        const r = await fetch("/api/scan", { method: "POST" });
+        const data = await r.json();
+        btn.textContent = data.new_issues_recorded > 0
+          ? `Found ${data.new_issues_recorded} new issue(s)`
+          : "No new issues";
+        load();
+      } catch (e) {
+        btn.textContent = "Scan failed";
+        console.error(e);
+      }
+      setTimeout(() => { btn.disabled = false; btn.textContent = "Sync issues from GitHub"; }, 3000);
+    }
 
     document.getElementById("interval").textContent = (POLL_MS / 1000).toString();
     load();

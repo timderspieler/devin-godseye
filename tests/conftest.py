@@ -16,6 +16,8 @@ os.environ["DEVIN_API_KEY"] = "test-key"
 os.environ["GITHUB_TOKEN"] = "test-token"
 os.environ["TRIGGER_LABELS"] = "devin-fix"
 os.environ["AUTO_APPROVE_LABELS"] = "devin-fix-auto"
+os.environ["ENABLE_SCANNER"] = "false"
+os.environ["TARGET_REPO"] = "timderspieler/superset"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
