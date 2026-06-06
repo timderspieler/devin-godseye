@@ -102,6 +102,29 @@ def test_sync_session_marks_completed_with_pr():
         assert session.issue.status == IssueStatus.COMPLETED
 
 
+def test_sync_session_completes_on_merged_pr():
+    """A session with a merged PR should transition to COMPLETED even if Devin is still running."""
+    devin = FakeDevinClient()
+    with SessionLocal() as db:
+        issue, _ = services.record_issue_from_event(db, _event(number=3))
+        services.approve_issue(db, issue, devin_client=devin)
+        sid = issue.session.id
+
+    devin_merged = FakeDevinClient(
+        details(
+            status_enum="waiting_for_user",
+            pr_url="https://github.com/org/repo/pull/42",
+            pr_state="merged",
+        )
+    )
+    with SessionLocal() as db:
+        session = db.get(FixSession, sid)
+        services.sync_session(db, session, devin_client=devin_merged)
+        assert session.pr_state == "merged"
+        assert session.issue.status == IssueStatus.COMPLETED
+        assert session.completed_at is not None
+
+
 def test_sync_session_marks_failed_on_expired():
     devin = FakeDevinClient()
     with SessionLocal() as db:

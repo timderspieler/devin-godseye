@@ -165,6 +165,8 @@ def sync_session(
     session.status = status_enum
     if details.pr_url:
         session.pr_url = details.pr_url
+    if details.pr_state:
+        session.pr_state = details.pr_state
     if details.structured_output is not None:
         session.structured_output = json.dumps(details.structured_output)
         summary = _extract_summary(details.structured_output)
@@ -172,7 +174,8 @@ def sync_session(
             session.result_summary = summary
 
     issue = session.issue
-    if status_enum in SUCCESS_STATUSES:
+    pr_merged = session.pr_state == "merged"
+    if status_enum in SUCCESS_STATUSES or pr_merged:
         issue.status = IssueStatus.COMPLETED
         if session.completed_at is None:
             session.completed_at = datetime.now(UTC)

@@ -23,6 +23,7 @@ class FakeDevinClient:
             status="running",
             status_enum="working",
             pr_url=None,
+            pr_state=None,
             structured_output=None,
             title="t",
             updated_at=None,
@@ -52,12 +53,15 @@ class FakeGitHubClient:
         return list(self._issues)
 
 
-def details(status_enum="finished", pr_url=None, structured_output=None) -> SessionDetails:
+def details(
+    status_enum="finished", pr_url=None, pr_state=None, structured_output=None,
+) -> SessionDetails:
     return SessionDetails(
         session_id="devin-1",
         status=status_enum,
         status_enum=status_enum,
         pr_url=pr_url,
+        pr_state=pr_state,
         structured_output=structured_output,
         title="t",
         updated_at=None,

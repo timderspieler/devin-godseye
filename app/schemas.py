@@ -20,6 +20,7 @@ class SessionView(BaseModel):
     devin_session_url: str
     status: str
     pr_url: str | None = None
+    pr_state: str | None = None
     result_summary: str | None = None
     structured_output: Any | None = None
     created_at: datetime
@@ -39,6 +40,7 @@ class SessionView(BaseModel):
             devin_session_url=session.devin_session_url,
             status=session.status,
             pr_url=session.pr_url,
+            pr_state=session.pr_state,
             result_summary=session.result_summary,
             structured_output=structured,
             created_at=session.created_at,
