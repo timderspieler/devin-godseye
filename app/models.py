@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from sqlalchemy import (
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -97,6 +98,7 @@ class FixSession(Base):
     pr_state: Mapped[str | None] = mapped_column(String(32), nullable=True)
     result_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     structured_output: Mapped[str | None] = mapped_column(Text, nullable=True)
+    total_acus: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(

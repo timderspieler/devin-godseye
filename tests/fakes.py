@@ -31,6 +31,7 @@ class FakeDevinClient:
             structured_output=None,
             title="t",
             updated_at=None,
+            acus_consumed=None,
             raw={},
         )
 
@@ -63,6 +64,7 @@ def details(
     pr_state=None,
     structured_output=None,
     status: str | None = None,
+    acus_consumed: float | None = None,
 ) -> SessionDetails:
     return SessionDetails(
         session_id="devin-1",
@@ -73,5 +75,6 @@ def details(
         structured_output=structured_output,
         title="t",
         updated_at=None,
+        acus_consumed=acus_consumed,
         raw={},
     )
