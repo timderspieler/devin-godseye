@@ -128,6 +128,12 @@
     const POLL_MS = 5000;
     let declineTarget = null;
 
+    // Build a base URL that never contains credentials.  Browsers block
+    // fetch() when the page was opened with a user:pass@ URL, so we
+    // reconstruct the origin from the protocol + hostname + port.
+    const _base = location.protocol + "//" + location.hostname + (location.port ? ":" + location.port : "");
+    function apiUrl(path) { return _base + path; }
+
     function esc(s) {
       return (s || "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
     }
@@ -218,7 +224,7 @@
 
     async function load() {
       try {
-        const res = await fetch("/api/issues");
+        const res = await fetch(apiUrl("/api/issues"));
         const data = await res.json();
         render("pending", data.pending, { actions: true });
         render("active", data.active, {});
@@ -234,12 +240,12 @@
     }
 
     async function approve(id) {
-      const r = await fetch(`/api/issues/${id}/approve`, { method: "POST" });
+      const r = await fetch(apiUrl(`/api/issues/${id}/approve`), { method: "POST" });
       if (!r.ok) alert("Approve failed: " + (await r.text()));
       load();
     }
     async function refresh(id) {
-      await fetch(`/api/issues/${id}/refresh`, { method: "POST" });
+      await fetch(apiUrl(`/api/issues/${id}/refresh`), { method: "POST" });
       load();
     }
     function openModal(id) { declineTarget = id; document.getElementById("modal").style.display = "flex"; }
@@ -247,7 +253,7 @@
     document.getElementById("confirm-decline").onclick = async () => {
       const reason = document.getElementById("decline-reason").value;
       const id = declineTarget;
-      const r = await fetch(`/api/issues/${id}/decline`, {
+      const r = await fetch(apiUrl(`/api/issues/${id}/decline`), {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason }),
       });
@@ -259,7 +265,7 @@
       const btn = document.getElementById("sync-btn");
       btn.disabled = true; btn.textContent = "Scanning…";
       try {
-        const r = await fetch("/api/scan", { method: "POST" });
+        const r = await fetch(apiUrl("/api/scan"), { method: "POST" });
         const data = await r.json();
         btn.textContent = data.new_issues_recorded > 0
           ? `Found ${data.new_issues_recorded} new issue(s)`
