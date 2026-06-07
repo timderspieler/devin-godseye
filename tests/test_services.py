@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from app import services
 from app.database import SessionLocal
 from app.models import FixSession, Issue, IssueStatus
@@ -90,6 +92,7 @@ def test_sync_session_marks_completed_with_pr():
             status_enum="finished",
             pr_url="https://github.com/org/repo/pull/12",
             structured_output={"summary": "Fixed the null deref"},
+            acus_consumed=4.2,
         )
     )
     with SessionLocal() as db:
@@ -98,6 +101,7 @@ def test_sync_session_marks_completed_with_pr():
         assert session.status == "finished"
         assert session.pr_url.endswith("/pull/12")
         assert session.result_summary == "Fixed the null deref"
+        assert session.total_acus == pytest.approx(4.2)
         assert session.completed_at is not None
         assert session.issue.status == IssueStatus.COMPLETED
 

@@ -23,6 +23,8 @@ class SessionView(BaseModel):
     pr_state: str | None = None
     result_summary: str | None = None
     structured_output: Any | None = None
+    total_acus: float | None = None
+    duration_seconds: int | None = None
     created_at: datetime
     updated_at: datetime
     completed_at: datetime | None = None
@@ -35,6 +37,11 @@ class SessionView(BaseModel):
                 structured = json.loads(session.structured_output)
             except (ValueError, TypeError):
                 structured = session.structured_output
+        duration: int | None = None
+        if session.completed_at and session.created_at:
+            duration = int(
+                (session.completed_at - session.created_at).total_seconds()
+            )
         return cls(
             devin_session_id=session.devin_session_id,
             devin_session_url=session.devin_session_url,
@@ -43,6 +50,8 @@ class SessionView(BaseModel):
             pr_state=session.pr_state,
             result_summary=session.result_summary,
             structured_output=structured,
+            total_acus=session.total_acus,
+            duration_seconds=duration,
             created_at=session.created_at,
             updated_at=session.updated_at,
             completed_at=session.completed_at,

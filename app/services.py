@@ -111,8 +111,9 @@ def approve_issue(
     created = client.create_session(
         prompt=build_prompt(issue),
         title=f"Fix {issue.repo}#{issue.number}: {issue.title}"[:200],
-        tags=["godseye", "devin-fix", f"{issue.repo}#{issue.number}"],
+        tags=["godseye", "devin-fix", issue.repo, f"issue-{issue.number}"],
         max_acu_limit=settings.session_max_acu_limit,
+        idempotent=True,
     )
 
     session = FixSession(
@@ -167,6 +168,8 @@ def sync_session(
         session.pr_url = details.pr_url
     if details.pr_state:
         session.pr_state = details.pr_state
+    if details.acus_consumed is not None:
+        session.total_acus = details.acus_consumed
     if details.structured_output is not None:
         session.structured_output = json.dumps(details.structured_output)
         summary = _extract_summary(details.structured_output)

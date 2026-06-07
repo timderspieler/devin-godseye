@@ -65,6 +65,7 @@
     button.sync:disabled { opacity: .5; cursor: wait; }
     .session-info { margin-top: 10px; font-size: 13px; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 8px; }
     .session-info .row { margin: 3px 0; }
+    .session-info .row.metrics { color: var(--accent); font-weight: 500; }
     .empty { color: var(--muted); font-size: 13px; font-style: italic; padding: 6px 0; }
     .auto { font-size: 11px; color: var(--green); margin-left: 8px; }
     .modal-bg {
@@ -142,6 +143,23 @@
       return ` <span class="badge ${cls}" style="font-size:10px;padding:2px 7px">${esc(state)}</span>`;
     }
 
+    function fmtDuration(sec) {
+      if (sec == null) return null;
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      if (h > 0) return `${h}h ${m}m`;
+      if (m > 0) return `${m}m`;
+      return `${sec}s`;
+    }
+
+    function metricsHtml(s) {
+      const parts = [];
+      if (s.total_acus != null) parts.push(`<span>ACUs: <strong>${s.total_acus.toFixed(1)}</strong></span>`);
+      if (s.duration_seconds != null) parts.push(`<span>Duration: <strong>${fmtDuration(s.duration_seconds)}</strong></span>`);
+      if (!parts.length) return "";
+      return `<div class="row metrics">${parts.join(" · ")}</div>`;
+    }
+
     function sessionHtml(s) {
       if (!s) return "";
       let pr = s.pr_url
@@ -153,6 +171,7 @@
         <div class="row">Devin status: <strong>${esc(s.status)}</strong></div>
         <div class="row">PR: ${pr}</div>
         ${summary}
+        ${metricsHtml(s)}
         <div class="row">Created: ${fmt(s.created_at)}${s.completed_at ? " · Completed: " + fmt(s.completed_at) : ""}</div>
       </div>`;
     }

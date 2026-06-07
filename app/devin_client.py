@@ -31,6 +31,7 @@ class SessionDetails:
     structured_output: Any | None
     title: str | None
     updated_at: str | None
+    acus_consumed: float | None
     raw: dict[str, Any]
 
 
@@ -78,6 +79,8 @@ class DevinClient:
             payload["tags"] = tags
         if max_acu_limit:
             payload["max_acu_limit"] = max_acu_limit
+        if idempotent:
+            payload["idempotent"] = True
 
         with httpx.Client(timeout=self.timeout) as client:
             resp = client.post(
@@ -133,5 +136,6 @@ class DevinClient:
             structured_output=data.get("structured_output"),
             title=data.get("title"),
             updated_at=data.get("updated_at"),
+            acus_consumed=data.get("acus_consumed"),
             raw=data,
         )

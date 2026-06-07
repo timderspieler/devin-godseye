@@ -26,10 +26,10 @@ GitHub issue labeled "devin-fix"
         │
         ├─ label in AUTO_APPROVE_LABELS ─► auto-approve
         ▼
-   Dashboard  ──Approve──►  POST /v1/sessions (Devin API)  ─► store devin_session_id
-        │                         │
+   Dashboard  ──Approve──►  POST /v3/organizations/{org}/sessions  ─► store devin_session_id
+        │                         │  (Devin API, idempotent)
         └──Decline (reason)──►  close GitHub issue          ▼
-                                              background poller: GET /v1/sessions/{id}
+                                              background poller: GET /v3/…/sessions/{id}
                                                      │
                                                      ▼
                                   track status · PR url · result · success/failure
@@ -130,12 +130,19 @@ Then create an issue and add the `devin-fix` label — it will appear on the das
 | `GET /health` | Liveness probe. |
 | `GET /` | Dashboard. |
 
-## Devin API usage
+## Devin API usage (v3)
 
-- **Create**: `POST /v1/sessions` with a prompt containing the issue title, description, and a
-  direct link to the GitHub issue (so Devin can pull more context from GitHub).
-- **Track**: `GET /v1/sessions/{session_id}` for `status_enum`, the resulting `pull_request.url`,
-  and `structured_output` (used as the result summary).
+All Devin API calls use the **v3** org-scoped endpoints.
+
+- **Create**: `POST /v3/organizations/{org_id}/sessions` with a prompt containing the issue
+  title, description, and a direct link to the GitHub issue (so Devin can pull more context
+  from GitHub). The request includes `idempotent: true` to prevent duplicate sessions, plus
+  searchable `tags` (`godseye`, `devin-fix`, repo, issue number).
+- **Track**: `GET /v3/organizations/{org_id}/sessions/{session_id}` for `status_detail`, the
+  resulting `pull_requests[].pr_url`, `structured_output` (used as the result summary), and
+  `acus_consumed` (shown on the dashboard as a session metric).
+- **Terminate**: `DELETE /v3/organizations/{org_id}/sessions/{session_id}?archive=true` —
+  called automatically when a PR is merged to clean up the running session.
 
 ## Project layout
 
